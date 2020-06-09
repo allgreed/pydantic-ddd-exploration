@@ -3,17 +3,21 @@ Goal: this should be the most boring file in the entire project
 """
 import datetime
 from uuid import UUID, uuid4
-
 from typing import Sequence, Optional, Any
 
 from fastapi import APIRouter, Depends
+from pydantic import constr
 from sqlalchemy.orm import Session
 
 from src.db import get_db
-from src.core import Event, Location, Weather, EventKind
+from src.core import Event, Location, Weather, EventKind, make_event
+from src.repositories import EventRepository
 
 
 the_router = APIRouter()
+
+def get_event_repository(db: Session = Depends(get_db)) -> EventRepository:
+    return EventRepository(db)
 
 
 # TODO: extract this to another file
@@ -96,39 +100,39 @@ class WeatherViewModel:
     pass
 
 
-@viewmodel(Event)
+@viewmodel(Event, omit_fields={"secret_digest"})
 class EventViewModel:
     pass
 
 
-@viewmodel(Event, omit_fields={"uuid"})
+@viewmodel(Event, omit_fields={"uuid", "secret_digest"})
 class EventCreateViewModel:
-    pass
+    secret: constr(min_length=1, max_length=255)
 
 
-events = [
-    Event(uuid=uuid4(), date=datetime.datetime.now().date(), people_count=555, secret_digest="aaa",
-        location=Location(latitude=5, longitude=-8), weather=Weather(temperature_celcius=5), kind=EventKind.PARTY),
-]
-
-
-# TODO: pack get_db into a dependency at a higher level? o.0
 @the_router.get("/", response_model=Sequence[EventViewModel])
-def read_many(db: Session = Depends(get_db)):
+def read_many(r: EventRepository = Depends(get_event_repository)):
     # TODO: make sure __initialised__ is not in response
     # TODO: maybe middleware
 
-    return events
+    with r.read() as r:
+        return r.get_all()
 
-
-# TODO: use actual DB
 
 @the_router.post("/", response_model=EventViewModel, status_code=201)
-def create(data: EventCreateViewModel, db: Session = Depends(get_db)):
-    # TODO: move this to factory
-    new_event = Event(**data.dict(), uuid=uuid4())
+def create(data: EventCreateViewModel, r: EventRepository = Depends(get_event_repository)):
+    new_event = make_event(data.dict())
 
-    # TODO: move this to repository
-    events.append(new_event)
+    # this is just for demo purposes
+    # TODO: remove this
+    print(new_event.secret_digest)
+
+    with r.write() as r:
+        r.add(new_event)
 
     return new_event
+
+
+# TODO: add put
+# TODO: add patch
+# TODO: add delete

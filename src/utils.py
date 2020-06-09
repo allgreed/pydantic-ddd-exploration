@@ -18,7 +18,3 @@ def status_204(f, *args, **kwargs):
 
 def hash_password(raw: str) -> str:
     return "#" + raw
-
-
-def compare_password_with_digest(raw: str, digest: str) -> bool:
-    return hash_password(raw) == digest

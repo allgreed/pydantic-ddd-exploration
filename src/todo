@@ -1,0 +1,4 @@
+    # TODO: add type safety to digest - maybe later
+    - newtype that is only generateable by running the hasing function
+
+    # TODO: add mypy - to the project

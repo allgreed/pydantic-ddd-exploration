@@ -1,3 +1,5 @@
 # python compiled
 __pycache__
-main.db
+
+# local database
+bd.db

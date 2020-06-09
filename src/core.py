@@ -2,11 +2,11 @@
 Goal: assess if Pydantic can be used as a native concept to build domain models on
 """
 import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 from enum import Enum
 
 from pydantic.dataclasses import dataclass
-from pydantic import confloat, PositiveInt, validator
+from pydantic import confloat, PositiveInt, validator, constr
 
 
 from src.utils import hash_password
@@ -45,10 +45,8 @@ class Event:
 
     kind: EventKind
     people_count: PositiveInt
-    secret_digest: str
-    # TODO: add type safety to digest
-    # TODO: add mypy
-    # TODO: digest can be set via hashing
+    # TODO: the constraints actually come from technical requirements (hash length) and should be enforced somewhere else, but how? 
+    secret_digest: constr(min_length=64, max_length=64)
 
     @validator("date")
     def date_cannot_be_in_the_future(cls, v):
@@ -58,3 +56,16 @@ class Event:
             raise ValueError("ensure this value is not in the future")
 
         return v
+
+
+def make_event(data: dict):
+    _data = data.copy()
+
+    uuid = uuid4()
+
+    # TODO: actually use a "hashing" function
+    secret_digest = "x" * 64
+
+    del _data["secret"]
+
+    return Event(**_data, uuid=uuid, secret_digest=secret_digest)

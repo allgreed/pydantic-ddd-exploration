@@ -2,9 +2,9 @@
 
 # Porcelain
 # ###############
-.PHONY: run init todo
+.PHONY: run init todo recreate-db
 
-run: setup ## run the app
+run: setup bd.db ## run the app
 	uvicorn src.main:app --reload
 
 # TODO: add docker
@@ -15,16 +15,19 @@ todo: ## list all TODOs in the project
 init: ## one time setup
 	direnv allow .
 
+recreate-db: remove-db bd.db ## get a fresh database
+	@# noop
+
 
 # Plumbing
 # ###############
-.PHONY: setup remove-main-db
+.PHONY: setup remove-db
 
-main.db:
-	WEAHTER_API_URL="noop" WEAHTER_API_KEY="noop" ADMIN_USERNAME="admin" ADMIN_PASSWORD="gExmNMLyzdUwQXfhTGmsyKqHloiZVF" python migrate.py
+bd.db:
+	./migrate.py
 
-remove-main-db:
-	rm -f main.db
+remove-db:
+	rm -f bd.db
 
 setup:
 	@# noop
