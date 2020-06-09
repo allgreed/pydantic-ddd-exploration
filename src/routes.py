@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from src.db import get_db
 from src.core import Event, Location, Weather, EventKind, make_event
 from src.repositories import EventRepository
+from src.secrets import TheSecret
 
 
 the_router = APIRouter()
@@ -107,7 +108,7 @@ class EventViewModel:
 
 @viewmodel(Event, omit_fields={"uuid", "secret_digest"})
 class EventCreateViewModel:
-    secret: constr(min_length=1, max_length=255)
+    secret: TheSecret.INPUT_T
 
 
 @the_router.get("/", response_model=Sequence[EventViewModel])
@@ -122,10 +123,6 @@ def read_many(r: EventRepository = Depends(get_event_repository)):
 @the_router.post("/", response_model=EventViewModel, status_code=201)
 def create(data: EventCreateViewModel, r: EventRepository = Depends(get_event_repository)):
     new_event = make_event(data.dict())
-
-    # this is just for demo purposes
-    # TODO: remove this
-    print(new_event.secret_digest)
 
     with r.write() as r:
         r.add(new_event)

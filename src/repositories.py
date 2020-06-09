@@ -40,7 +40,7 @@ class SqlEvent(Base):
             weather_temperature_celcius = e.weather.temperature_celcius,
             kind = e.kind,
             people_count = e.people_count,
-            secret_digest = e.secret_digest,
+            secret_digest = e.secret_digest.get_secret_value(),
             )
 
     def to_core(self) -> Event:

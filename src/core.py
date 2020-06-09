@@ -9,6 +9,7 @@ from pydantic.dataclasses import dataclass
 from pydantic import confloat, PositiveInt, validator, constr
 
 
+from src.secrets import TheSecret
 from src.utils import hash_password
 
 
@@ -45,8 +46,7 @@ class Event:
 
     kind: EventKind
     people_count: PositiveInt
-    # TODO: the constraints actually come from technical requirements (hash length) and should be enforced somewhere else, but how? 
-    secret_digest: constr(min_length=64, max_length=64)
+    secret_digest: TheSecret.STORAGE_T
 
     @validator("date")
     def date_cannot_be_in_the_future(cls, v):
@@ -63,9 +63,7 @@ def make_event(data: dict):
 
     uuid = uuid4()
 
-    # TODO: actually use a "hashing" function
-    secret_digest = "x" * 64
-
+    secret_digest = TheSecret.hash(_data["secret"])
     del _data["secret"]
 
     return Event(**_data, uuid=uuid, secret_digest=secret_digest)
