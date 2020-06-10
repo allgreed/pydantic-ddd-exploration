@@ -46,7 +46,7 @@ class Event:
 
     kind: EventKind
     people_count: PositiveInt
-    secret_digest: TheSecret.STORAGE_T
+    secret_digest: TheSecret.DigestType
 
     @validator("date")
     def date_cannot_be_in_the_future(cls, v):
@@ -58,11 +58,12 @@ class Event:
         return v
 
 
-def make_event(data: dict):
+def make_new_event(data: dict):
     _data = data.copy()
 
     uuid = uuid4()
 
+    # this is an otherwise undocummented interface, not cool
     secret_digest = TheSecret.hash(_data["secret"])
     del _data["secret"]
 

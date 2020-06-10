@@ -9,6 +9,7 @@ from sqlalchemy import Column, Integer, Float, String, Date, Enum
 
 from src.db import Base, UUID
 from src.core import Event, EventKind, Location, Weather
+from src.secrets import TheSecret
 
 # TODO: add unique title on DB level
 # TODO: how to handle that
@@ -28,7 +29,7 @@ class SqlEvent(Base):
 
     kind = Column(Enum(EventKind, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     people_count = Column(Integer, nullable=False)
-    secret_digest = Column(String(length=60), nullable=False)
+    secret_digest = Column(TheSecret.SqlDbType, nullable=False)
 
     # TODO: is there a point in automating this?
     @classmethod
@@ -40,7 +41,7 @@ class SqlEvent(Base):
             weather_temperature_celcius = e.weather.temperature_celcius,
             kind = e.kind,
             people_count = e.people_count,
-            secret_digest = e.secret_digest.get_secret_value(),
+            secret_digest = TheSecret.db_from_core(e.secret_digest),
             )
 
     def to_core(self) -> Event:
@@ -50,7 +51,7 @@ class SqlEvent(Base):
                location=Location(latitude=self.location_latitude, longitude=self.location_longitude),
                weather=Weather(temperature_celcius=self.weather_temperature_celcius),
                people_count=self.people_count,
-               secret_digest=self.secret_digest,
+               secret_digest=TheSecret.core_from_db(self.secret_digest),
                kind=self.kind,
             )
 
