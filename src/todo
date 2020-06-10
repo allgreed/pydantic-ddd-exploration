@@ -2,3 +2,5 @@
     - newtype that is only generateable by running the hasing function
 
     # TODO: add mypy - to the project
+
+    - middleware that ensures the usage of dedicated view_models = is that really necessary tbh?

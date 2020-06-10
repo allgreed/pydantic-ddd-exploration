@@ -3,6 +3,7 @@ from pydantic import SecretStr
 
 class TheSecret:
     # TODO: can I constrain it?
+    # TODO: are those names the best?
     STORAGE_T = SecretStr
     INPUT_T = SecretStr
 

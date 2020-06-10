@@ -21,14 +21,14 @@ def get_event_repository(db: Session = Depends(get_db)) -> EventRepository:
     return EventRepository(db)
 
 
-# TODO: extract this to another file
+# TODO: extract this to DDD
 import pydantic
 import typing
 # TODO: type domain model as Pydantic dataclass / Pydantic model
 def viewmodel(domain_model: "any", omit_fields: Sequence[str] = ()):
     def class_decorator(cls):
         class MetaMeta(type(pydantic.BaseModel)):
-            def __new__(_, __, ___, ____):
+            def __new__(_, __, ___, original_dict):
                     base = domain_model.__pydantic_model__
                     # TODO: implement better field omission - maybe create another base and copy everything but the omitted fields
                     # https://github.com/samuelcolvin/pydantic/blob/master/pydantic/main.py
@@ -52,13 +52,13 @@ def viewmodel(domain_model: "any", omit_fields: Sequence[str] = ()):
                     for x in omit_fields:
                         _initial_annotations[x] = typing.Union[typing.Any, type(None)]
 
-                    base_annotations = base.__annotations__
-                    for annotation_name, annotation in base_annotations.items():
-                        # TODO: check for pydantic model / being core, etc
-                        if annotation_name == "location" or annotation_name == "weather":
+                    for annotation_name, annotation in base.__annotations__.items():
+                        # TODO: how does this work with pydantic.BaseModel ?
+                        if hasattr(annotation, "__pydantic_model__"): # is pydantic model
                             # TODO: what if not globals? o.0
                             t = globals().get(f"{annotation.__qualname__}ViewModel")
-                            if t:
+
+                            if t and annotation is t.__domain_model__:
                                 _initial_annotations[annotation_name] = t
 
                     if hasattr(cls, "__annotations__"):
@@ -66,26 +66,26 @@ def viewmodel(domain_model: "any", omit_fields: Sequence[str] = ()):
 
                     dct["__annotations__"] = _initial_annotations
 
-                    bases = (base, cls)
+                    original_dict.pop("__module__")
+                    original_dict.pop("__qualname__")
+
                     # avoid unnecessary calls to self
                     _meta = type(pydantic.BaseModel)
+                    bases = (base, cls)
 
-                    return super().__new__(_meta, cls.__qualname__, bases, dct)
+                    original_dict.update(dct)
+                    _dict = original_dict
 
+                    return super().__new__(_meta, cls.__qualname__, bases, _dict)
+
+        # TODO: do I try to put stuff here or just handle this at the MetaMeta level?
         class ResultCls(metaclass=MetaMeta):
+            __domain_model__ = domain_model
+
             # TODO: only overwrite this method if there are fields to be omitted
-            def dict(*args, **kwargs):
-                raise ValueError("BBBB")
-            pass
-
-        # break recursison
-        f = ResultCls.dict
-        def _dict(*args, **kwargs):
-            kwargs["exclude"] = set(omit_fields)
-            return f(*args, **kwargs)
-
-        ResultCls.dict = _dict
-
+            def dict(self, *args, **kwargs):
+                kwargs["exclude"] = set(omit_fields)
+                return super().dict(*args, **kwargs)
 
         return ResultCls
     return class_decorator
@@ -113,9 +113,6 @@ class EventCreateViewModel:
 
 @the_router.get("/", response_model=Sequence[EventViewModel])
 def read_many(r: EventRepository = Depends(get_event_repository)):
-    # TODO: make sure __initialised__ is not in response
-    # TODO: maybe middleware
-
     with r.read() as r:
         return r.get_all()
 
